@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "Opportunistic Encryption TOFU",
+  "description": "This addon implements an approach for opportunistic email encryption, through trust-on-first-use (LINK!!!). The mail client sends a esmtp command 'xcertreq:<recipient>' to request a certificate.",
+  "author": "Joachim Müssig",
+  "version": "1",
+  "applications": {
+    "gecko": {
+      "id": "Optofu@Jo"
+    }
+  },
+  "compose_action": {
+    "default_area": "maintoolbar",
+    "default_title": "Opp. Encryption",
+    "default_icon": "images/internet-32px.png"
+  },
+  "permissions": [
+  ],
+  "icons": {
+    "16": "images/internet-16px.png"
+  }
+}
