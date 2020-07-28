@@ -1,0 +1,7 @@
+{
+  "name": "smtp_client",
+  "description": "native messaging script to perform xcertreq-smtp request to the outgoing mail server",
+  "path": "home/joachim/Dokumente/Uni/Master/Masterarbeit/Implimentation/trustMTP/ThunderbirdPluginTOFU/smtpClient/client.py",
+  "type": "stdio",
+  "allowed_extensions": [ "Optofu@Jo" ]
+}
