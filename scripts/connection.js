@@ -1,0 +1,142 @@
+// export {smtpConnect};
+// var net = require('net'); 
+
+/*
+If we sending a message and opportunistc encryption is activated:
+- we check 
+*/
+let socket = null;
+const regex_mail = "";
+const OK_RECV = "OK RECV";
+const OK_SERVER = "OK SERVER";
+const FAIL = "FAIL";
+const NOT_SUPPORTED = "NOT_SUPPORTED";
+const CERT_RESPONSE = "CERT: ";
+const WHITESPACE = " ";
+// var scope = ChromeUtils.import("resource://foo/modules/Foo.jsm"); // scope.Foo…
+
+//https://stackoverflow.com/questions/21310157/building-a-simple-smtp-client-using-websockets
+//https://developer.mozilla.org/en-US/docs/Mozilla/Mozilla_Port_Blocking 25 is blocked !
+//websocket wont work !
+
+//https://stackoverflow.com/questions/45291765/how-to-run-a-external-executable-with-firefox-web-extensions/45312003
+//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging
+//maybe use this : https://developer.mozilla.org/en-US/docs/Mozilla/JavaScript_code_modules/Using
+//https://aticleworld.com/ssl-server-client-using-openssl-in-c/
+
+
+
+//native apps ::: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_manifests#Manifest_location
+//https://github.com/mdn/webextensions-examples/tree/master/native-messaging
+//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime
+
+
+//LESE DAS + GEKO: 
+//https://developer.thunderbird.net/add-ons/updating/tb68/changes
+//https://developer.thunderbird.net/add-ons/updating/tb78
+//ALLES ANDERE SCHEINT VERALTET !?
+function smtpConnect() {
+    var port = browser.runtime.connectNative("smtp_client");
+    var outgoingSMTP = "mail1.de:25";
+    var recipientAddr = "joachim@mail1";
+    var finished = false;
+    //one minute timeout
+    var timeout = 60000;
+
+    //set timeout for the request
+    setTimeout(function() { 
+        if(finished) {
+            abort(port,"timout: abort");
+        }
+    }, timeout);
+
+    //send outgoing server information and recipient address, to start the xcertreq
+    console.log("start request:")
+    console.log("   Sending recipient address: "+ recipientAddr);
+    port.postMessage("RECV: " + recipientAddr);
+
+    // port.postMessage(recipientAddr);
+    // port.postMessage(outgoingSMTP);
+
+    port.onMessage.addListener((response) => {
+        // console.log("   Received: " + response);
+        if(response === OK_RECV) {
+            console.log("   Received: " + response);
+            console.log("   Sending outgoing server: "+ outgoingSMTP);
+            port.postMessage("SERVER: "+ outgoingSMTP);
+        }
+        else if(response === OK_SERVER) {
+            console.log("   Received: " + response);
+        }
+        else if(response === FAIL) {
+            console.log("   Received: " + response);
+            //something went wrong: abort
+            abort(port,"FAIL response from client: abort");
+        }
+        else if(response.startsWith(CERT_RESPONSE)) {
+            console.log("   Received: " + response);
+            finished=true;
+            splittedResponse = response.split(WHITESPACE);
+        }
+        else if (response.startsWith("OK: ")) {
+            splitted = response.split("OK: ");
+            if(splitted.length > 1) {
+                console.log("   "+ "SMTP response: " + splitted[1]);
+            }
+        }
+        else if (response === NOT_SUPPORTED) {
+            console.log("   Received: "+ response);
+            abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort");
+        } else {
+            //something went wrong: abort
+            console.log("   "+ "ERROR:" + response);
+            abort(port,"wrong response from smtp client: abort");
+        }
+    });
+}
+
+function abort(port, log_message) {
+    //TODO: show error message to user
+    console.log("wrong response from smtp client");
+    port.disconnect()
+    abortProtocol();
+}
+
+
+    // socket = mozTCPSocket.open('localhost', 8080);
+
+    // socket.ondata = function (event) {
+    //     if (typeof event.data === 'string') {
+    //         console.log('Get a string: ' + event.data);
+    //     } else {
+    //         console.log('Get a Uint8Array');
+    //     }
+    // }
+
+    // var outgoingSMTP = "testmail"
+    // socket = new WebSocket('localhost:8080');
+
+    // socket.addEventListener('open', function (event) {
+    //     alert("[open] Connection established");
+    //     alert("Sending to server");
+    //     xcertReq(socket);
+    // });
+
+    // // Listen for messages
+    // socket.addEventListener('message', function (event) {
+    //     console.log('Message from server ', event.data);
+
+    // });
+
+    // var socket = net.createConnection(25, 'testmail');
+    // console.log('Socket created.');
+    // socket.on('data', function(data) {
+    //     // Log the response from the HTTP server.
+    //     console.log('RESPONSE: ' + data);
+    // }).on('connect', function() {
+    //     // Manually write an HTTP request.
+    //     socket.write("GET / HTTP/1.0\r\n\r\n");
+    // }).on('end', function() {
+    //     console.log('DONE');
+    // });
+
