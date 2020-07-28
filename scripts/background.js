@@ -3,21 +3,67 @@
 let promiseMap = new Map();
 let loadingWindowResolve;
 
+let errorWindowID
 let loadingWindowID;
 var activated = true;
+
+/**
+ * message ports for content scripts (i.e error.js)
+ */
+let portFromCSError;
+
+
 browser.composeAction.setBadgeText({
   text:"✔"
 });
 
+/**
+ * connection listener to connect to content scripts 
+ */
+browser.runtime.onConnect.addListener(connected);
+function connected(p) {
+
+    console.log("T");
+  if(p.name=="port-from-error-cs") {
+    portFromCSError = new Promise(function(resolve,reject){
+
+      console.log("TT");
+      // portFromCSError = p;
+      p.onMessage.addListener(function(m) {
+        if(m.closeError) {
+          browser.windows.remove(errorWindowID);
+          errorWindowID = null
+          // portFromCS.postMessage({greeting: "In background script, received message from content script:" + m.greeting});
+        }
+      });
+      resolve(p);
+    });
+  }
+  // portFromCS.postMessage({greeting: "hi there content script!"});
+
+  /**
+   * add your listener here
+   */
+  
+}
 
 /* 
   message handler
+  //TODO use the connected function above to handle messages
 */
 browser.runtime.onMessage.addListener(message => {
   if(message.abort) {
     abortProtocol();
   }
+  else if(message.closeError) {
+    console.log("close error window")
+    if(errorWindowID) {
+      browser.windows.remove(errorWindowID);
+      errorWindowID = null
+    }
+  }
 });
+
 
 /*
   called if abort button is pressed in loader.html
@@ -32,6 +78,36 @@ function abortProtocol() {
   }
   console.log("cancel message send");
   browser.windows.remove(loadingWindowID);
+  error=true;
+  if(error) {
+    errorMessage = browser.windows.create({
+      allowScriptsToClose: true,
+      url: "../popup/error.html",
+      type: "panel",
+      width: 300,
+      height: 150,
+    });
+    // errorMessage.then(onCreated);
+    errorMessage.then((errorWindow) => {
+      onCreated(errorWindow);
+      errorWindowID = errorWindow.id;
+      //send error message to error.js
+
+      //TODO:::::!!!!!!!
+      //create the port the other way around ? 
+      //create the port here and send it to the content script ? so we are sure, that we post the Message if the connection and window is created
+      //change onConnect methode above
+      portFromCSError.then((port) => {
+        port.postMessage({error: "In background script, received message from content script"});
+      });
+
+      // browser.runtime.sendMessage({"error": "test"});
+      // window.postMessage({"error": "test"});
+    });
+    errorMessage.catch((error) => {
+      console.error(error);
+    })
+  }
   resolve({ cancel: true });
 }
 
@@ -57,7 +133,7 @@ browser.compose.onBeforeSend.addListener(() => {
       url: "../popup/loader.html",
       type: "panel",
       width: 300,
-      height: 300,
+      height: 250,
     });
     loadingWindow.then(onCreated);
     loadingWindow.catch((error) => {
@@ -148,9 +224,124 @@ function onSendPerformed() {
     //yes: check revocation
 
   } else {
-    //No:create connection to outgoing smtp server and send xcertreq
-    // smtpConnect();
+    var recipientPromise = extractRecipient();
+    recipientPromise.then((to)=> {
+      console.log(to);
+      recipientAddress = to;
+      //No:create connection to outgoing smtp server and send xcertreq
+      //TODO: add arguments for the recipient address and outgoing mail server
+      smtpConnect();
+    });
   }
+}
+
+/**
+ * get the sender id from the compose window
+ */
+// function getComposeDetails2() {
+//   //get compose windows
+//   let composeWindow = browser.windows.getAll({
+//     "populate": true,
+//     "windowTypes": ["messageCompose"]
+//   });
+//   // let curr_Window = browser.windows.getCurrent({
+//   //   "populate": true
+//   // }
+//   // let curr_tab = browser.tabs.getCurrent();
+//   // curr_tab.then(() => {
+//   //   console.log(curr_tab.id);
+//   // });
+//   composeWindow.then((composeWindow) => {
+//     console.log(composeWindow);
+//     if (composeWindow.length > 1) {
+//       //TODO: handle multiple compose windows
+//       console.log("error: multiple compose windows open")
+//       return;
+//     }
+//     var tabs = composeWindow[0].tabs;
+//     if (tabs.length > 1) {
+//       //TODO handle multiple tabs
+//       console.log("error: multple tabs in compose window");
+//       return;
+//     }
+//     // browser.compose.getComposeDetails(25);
+//     console.log("compose tab id: "+ tabs[0].id);
+//     var composeDetails = browser.compose.getComposeDetails(tabs[0].id);
+//     composeDetails.then((composeDetails) => {
+//       console.log(composeDetails);
+//     });
+//     return composeDetails;
+//   })
+// }
+
+function getComposeWindow() {
+  let composeWindow = browser.windows.getAll({
+    "populate": true,
+    "windowTypes": ["messageCompose"]
+  });
+  return composeWindow;
+}
+
+function getComposeDetails(composeWindow) {
+  //this tab is sometime undefined, although i call function in the .then method of the window promise ? 
+  //TODO maybe fix this, if necessary 
+  var tabs = composeWindow.tabs;
+  console.log(tabs.length);
+  if (tabs.length > 1) {
+    //TODO handle multiple tabs
+    console.log("error: multple tabs in compose window");
+    return;
+  }
+  // browser.compose.getComposeDetails(25);
+  console.log("compose tab id: "+ tabs[0].id);
+  var composeDetails = browser.compose.getComposeDetails(tabs[0].id);
+  composeDetails.then((composeDetails) => {
+    console.log(composeDetails);
+  });
+  return composeDetails;
+}
+
+function getSenderID(composeDetails) {
+  console.log("compose details : " + composeDetails.identityId);
+  return composeDetails.identityId;
+}
+
+
+/**
+ * get the 
+ */
+function extractRecipient() {
+  let composeWindow = getComposeWindow();
+  let result = new Promise(function(resolve,reject) {
+        //set datastructure / map with identityID/sender and recipient
+    composeWindow.then((composeWindow) => {
+      if (composeWindow.length > 1) {
+        //TODO: handle multiple compose windows
+        console.log("error: multiple compose windows open")
+        return;
+      }
+      var composeDetails = getComposeDetails(composeWindow[0]);
+      composeDetails.then((composeDetails) => {
+        
+        // console.log(composeDetails.identityId);
+        // console.log(composeDetails.to);
+        resolve(composeDetails.to);
+        //search mail address from this identity. Docu says, that composeDetails has a field identity, but there is only identityId.
+        //Change if this is fixed.
+        
+        // browser.accounts.get("account1").then((account) => {
+        //   console.log(account);
+        // });
+
+        // browser.accounts.list().then((accounts) => {
+          // accounts.forEach(function (arrayItem)
+          // console.log(accounts);
+        // })
+      });
+    });
+  });
+  return result;
+  // let composeDetails = getComposeDetails();
 }
 
 
@@ -160,14 +351,33 @@ On click toggle opportunistic encryption
 browser.composeAction.onClicked.addListener(() => {
   //Toggle button. Activate/deactivate opportunistic encryption
   activated = !activated;
-  
-  //Toggle color of the button
-  // console.log(browser.windows.getAll({
-  //   populate: true,
-  // }));
+
+
+  //test get from; to; infos from compose window
+  // var recipientPromise = extractRecipient();
+  // recipientPromise.then((to)=> {
+  //   console.log(to);
+  //   recipientAddress = to;
+  // });
+  // let composeWindow = getComposeWindow();
+  // composeWindow.then((composeWindow) => {
+  //   if (composeWindow.length > 1) {
+  //     //TODO: handle multiple compose windows
+  //     console.log("error: multiple compose windows open")
+  //     return;
+  //   }
+  //   var composeDetails = getComposeDetails(composeWindow[0]);
+  //   composeDetails.then((composeDetails) => {
+  //     new Promise((resolve) => {
+  //       //set datastructure / map with identityID/sender and recipient
+  //     });
+  //     console.log(composeDetails.identityId);
+  //     console.log(composeDetails.to);
+  //   });
+  // });
+  // let composeDetails = getComposeDetails();
 
   //only for testing
-  // smtpConnect();
 
   if(activated) {
 
