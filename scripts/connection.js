@@ -10,9 +10,13 @@ const regex_mail = "";
 const OK_RECV = "OK RECV";
 const OK_SERVER = "OK SERVER";
 const FAIL = "FAIL";
+const TIMEOUT = "TIMEOUT";
 const NOT_SUPPORTED = "NOT_SUPPORTED";
 const CERT_RESPONSE = "CERT: ";
 const WHITESPACE = " ";
+//TODO: put constants in a seperat file, to share these with background.js, connection.js,...
+
+
 // var scope = ChromeUtils.import("resource://foo/modules/Foo.jsm"); // scope.Foo…
 
 //https://stackoverflow.com/questions/21310157/building-a-simple-smtp-client-using-websockets
@@ -46,7 +50,8 @@ function smtpConnect() {
     //set timeout for the request
     setTimeout(function() { 
         if(finished) {
-            abort(port,"timout: abort");
+            error_message = TIMEOUT;
+            abort(port,"timout: abort", error_message);
         }
     }, timeout);
 
@@ -71,7 +76,8 @@ function smtpConnect() {
         else if(response === FAIL) {
             console.log("   Received: " + response);
             //something went wrong: abort
-            abort(port,"FAIL response from client: abort");
+            error_message = FAIL;
+            abort(port,"FAIL response from client: abort",error_message);
         }
         else if(response.startsWith(CERT_RESPONSE)) {
             console.log("   Received: " + response);
@@ -86,20 +92,22 @@ function smtpConnect() {
         }
         else if (response === NOT_SUPPORTED) {
             console.log("   Received: "+ response);
-            abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort");
+            error_message = NOT_SUPPORTED;        
+            abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort", error_message);
         } else {
             //something went wrong: abort
             console.log("   "+ "ERROR:" + response);
-            abort(port,"wrong response from smtp client: abort");
+            error_message = "DEFAULT";
+            abort(port,"wrong response from smtp client: abort",error_message);
         }
     });
 }
 
-function abort(port, log_message) {
+function abort(port, log_message, error_message) {
     //TODO: show error message to user
-    console.log("wrong response from smtp client");
+    console.log(log_message);
     port.disconnect()
-    abortProtocol();
+    abortProtocol(error_message);
 }
 
 

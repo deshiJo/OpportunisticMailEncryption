@@ -1,11 +1,14 @@
 //icon from https://www.iconfinder.com/iconsets/bitsies
 
 let promiseMap = new Map();
-let loadingWindowResolve;
+var activated = true;
 
 let errorWindowID
+var currentErrorMessage = "";
+
 let loadingWindowID;
-var activated = true;
+let loadingWindowResolve;
+
 
 /**
  * message ports for content scripts (i.e error.js)
@@ -23,44 +26,46 @@ browser.composeAction.setBadgeText({
 browser.runtime.onConnect.addListener(connected);
 function connected(p) {
 
-    console.log("T");
+  /**
+   * listener for error.js
+   */
   if(p.name=="port-from-error-cs") {
-    portFromCSError = new Promise(function(resolve,reject){
+      portFromCSError = p;
 
-      console.log("TT");
-      // portFromCSError = p;
-      p.onMessage.addListener(function(m) {
+      //add close listener for the window
+      portFromCSError.onMessage.addListener(function(m) {
         if(m.closeError) {
           browser.windows.remove(errorWindowID);
           errorWindowID = null
-          // portFromCS.postMessage({greeting: "In background script, received message from content script:" + m.greeting});
         }
       });
-      resolve(p);
-    });
+      updateErrorMessageWindow();
   }
-  // portFromCS.postMessage({greeting: "hi there content script!"});
-
   /**
    * add your listener here
    */
-  
+}
+
+/**
+ * sends a message to error.js, to update the displayed error message. 
+ * The global variable currentErrorMessage is used as the displayed message
+ */
+function updateErrorMessageWindow() {
+  if(currentErrorMessage && portFromCSError) {
+    portFromCSError.postMessage({error: currentErrorMessage});
+  } else {
+    console.log("currentErrorMessage emtpy, or connection not estabilished yet. Use default error message.");
+  }
+
 }
 
 /* 
-  message handler
-  //TODO use the connected function above to handle messages
+  message handler for loader.js
+  TODO: maybe use port connection like the connection to error.js
 */
 browser.runtime.onMessage.addListener(message => {
   if(message.abort) {
-    abortProtocol();
-  }
-  else if(message.closeError) {
-    console.log("close error window")
-    if(errorWindowID) {
-      browser.windows.remove(errorWindowID);
-      errorWindowID = null
-    }
+    abortProtocol("");
   }
 });
 
@@ -68,7 +73,7 @@ browser.runtime.onMessage.addListener(message => {
 /*
   called if abort button is pressed in loader.html
 */
-function abortProtocol() {
+function abortProtocol(error) {
   console.log("abort certificate request");
   let resolve = loadingWindowResolve;
   if (!resolve) {
@@ -78,31 +83,38 @@ function abortProtocol() {
   }
   console.log("cancel message send");
   browser.windows.remove(loadingWindowID);
-  error=true;
   if(error) {
+    currentErrorMessage = error;
+    switch(error) {
+      case NOT_SUPPORTED: 
+        currentErrorMessage = "Opportunistic encryption not supported by your mail server or your recipient.\n"
+            + " Receive the public key manually or send unencrypted if necessary.";
+        break;
+      case FAIL: 
+        currentErrorMessage = "Something went wrong, while requesting the certificate/key for the recipient.\n" ;
+        break;
+      case TIMEOUT:
+        currentErrorMessage = "Timeout: Connection failed or Server busy.\n"
+            +"Try again laiter, or send unencryption if necessary."
+      default:
+        currentErrorMessage = "Something went wrong.";
+        break;
+    }
     errorMessage = browser.windows.create({
       allowScriptsToClose: true,
       url: "../popup/error.html",
       type: "panel",
       width: 300,
-      height: 150,
+      height: 190,
     });
-    // errorMessage.then(onCreated);
     errorMessage.then((errorWindow) => {
+      /**
+       * The window is created now. The content scipt error.js will now create a message connection to this script, handled in connected(p).
+       * Make sure, to set the parameter currentErrorMessage before creating the window, because this 
+       * variable is used as the displayed message on error.html
+      */
       onCreated(errorWindow);
       errorWindowID = errorWindow.id;
-      //send error message to error.js
-
-      //TODO:::::!!!!!!!
-      //create the port the other way around ? 
-      //create the port here and send it to the content script ? so we are sure, that we post the Message if the connection and window is created
-      //change onConnect methode above
-      portFromCSError.then((port) => {
-        port.postMessage({error: "In background script, received message from content script"});
-      });
-
-      // browser.runtime.sendMessage({"error": "test"});
-      // window.postMessage({"error": "test"});
     });
     errorMessage.catch((error) => {
       console.error(error);
