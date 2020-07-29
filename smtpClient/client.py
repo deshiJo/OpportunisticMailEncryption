@@ -5,6 +5,8 @@ import json
 import struct
 import re
 import socket
+import ssl
+
 #import smtplib import SMTP
 
 #app manifest location:
@@ -16,9 +18,11 @@ OK_RECV = "OK RECV"
 RECV = "RECV: "
 OK_SERVER = "OK SERVER"
 SERVER = "SERVER: "
+SUCCESS = "SUCCESS"
 FAIL = "FAIL"
 NOT_SUPPORTED = "NOT_SUPPORTED"
 CERT_RESPONSE = "CERT: "
+TLS_ERROR = "TLS_ERROR"
 OK = "OK: "
 WHITESPACE = " "
 EHLO = "EHLO "
@@ -53,12 +57,18 @@ try:
         sys.stdout.buffer.write(encodedMessage['content'])
         sys.stdout.buffer.flush()
 
+    def extractStatusCode(response):
+        r = response.decode()
+        return r[:3]
+
     def start_Exchange(server, recipient):
 
         #for tests: remove these:
         server = "mail1.de"
+        server = "testmail"
         port = 25
-        recipient = "<joachim@mail1>"
+        recipient = "<joachim@testmail>"
+        #recipient = "<joachim@mail1>"
 
         fqdn = socket.getfqdn().encode()
         # server_info = (server, port)
@@ -69,11 +79,52 @@ try:
 
             #send message to connection.js, to print it on console.log
             sendMessage(encodeMessage(OK+r.decode()))
-            sendMessage(encodeMessage(OK+socket.getfqdn()))
+            # sendMessage(encodeMessage(OK+socket.getfqdn()))
 
             #check if smtp server supports XCERTREQ and STARTTLS 
+            if extractStatusCode(r) != '220':
+                sendMessage(encodeMessage(NOT_SUPPORTED))
+                return
             if not STARTTLS in r.decode() or not XCERTREQ in r.decode():
                 sendMessage(encodeMessage(NOT_SUPPORTED))
+                return
+
+            #TODO TLS first but how ?!
+            s.send(STARTTLS.encode()+CRLF.encode())
+            r = s.recv(1024)
+            if extractStatusCode(r) != '220':
+                sendMessage(encodeMessage(FAIL))
+                return
+
+            # from now on encrypted: use tls wrapper for the socket
+            # try:
+
+            #TODO IMPORTANT: REPLACE unverified with default context. This here is just for debug cases
+            # context = ssl.create_default_context()
+            context = ssl._create_unverified_context()
+            scc = context.wrap_socket(s,server_hostname=server)
+
+            #scc.send('auth login\r\n')
+            #TODO AUTH
+            
+            # sendMessage(encodeMessage(OK+"send xcert req"))
+            # sendMessage(encodeMessage(request))
+            scc.send(XCERTREQ.encode()+ b":"+recipient.encode()+CRLF.encode())
+            r = scc.recv(1024)
+            if extractStatusCode(r) == '250':
+                sendMessage(encodeMessage(OK+r.decode()))
+                cert = r.decode()
+                #close connection
+                scc.send(QUIT.encode()+CRLF.encode())
+                r = scc.recv(1024) 
+                # sendMessage(encodeMessage(OK+r.decode()))
+                sendMessage(encodeMessage(SUCCESS+": "+cert))
+                return
+
+            # elif extractStatusCode(r) == ...
+
+            # except ssl.SSLError as e:
+                # sendMessage(encodeMessage(TLS_ERROR))
 
 
 
@@ -101,6 +152,9 @@ try:
             # maybe access prefs.js instead of getting through message ? 
             sendMessage(encodeMessage(OK_SERVER))
             start_Exchange(server, recipient)
+
+            #break ? 
             
 except AttributeError:
     pass
+    #TODO send message to abort and show error message

@@ -69,11 +69,25 @@ browser.runtime.onMessage.addListener(message => {
   }
 });
 
+function closeLoadingWindowAndConitnueSending() {
+  let resolve = loadingWindowResolve;
+  if (!resolve) {
+    console.log("resolve not defined!");
+    //This should not happen !!
+    return
+  }
+  browser.windows.remove(loadingWindowID);
+
+  //TODO: USE CERTIFICATE TO ENCRYPT HERE
+
+  resolve({ cancel: false });
+}
 
 /*
   called if abort button is pressed in loader.html
 */
 function abortProtocol(error) {
+  running = false;
   console.log("abort certificate request");
   let resolve = loadingWindowResolve;
   if (!resolve) {
@@ -84,18 +98,22 @@ function abortProtocol(error) {
   console.log("cancel message send");
   browser.windows.remove(loadingWindowID);
   if(error) {
-    currentErrorMessage = error;
+    // currentErrorMessage = error;
     switch(error) {
       case NOT_SUPPORTED: 
         currentErrorMessage = "Opportunistic encryption not supported by your mail server or your recipient.\n"
-            + " Receive the public key manually or send unencrypted if necessary.";
+            + "Try again or receive the public key manually";
         break;
       case FAIL: 
         currentErrorMessage = "Something went wrong, while requesting the certificate/key for the recipient.\n" ;
         break;
       case TIMEOUT:
-        currentErrorMessage = "Timeout: Connection failed or Server busy.\n"
-            +"Try again laiter, or send unencryption if necessary."
+        currentErrorMessage = "Timeout: Connection failed or Server is busy.\n"
+            +"Try again laiter, or send the mail unencrypted if necessary."
+        break;
+      case TLS_ERROR:
+        currentErrorMessage = "Error while starting tls connection\n. Try again or get recipient key manually, if this error occures again";
+        break;
       default:
         currentErrorMessage = "Something went wrong.";
         break;
@@ -242,7 +260,15 @@ function onSendPerformed() {
       recipientAddress = to;
       //No:create connection to outgoing smtp server and send xcertreq
       //TODO: add arguments for the recipient address and outgoing mail server
-      smtpConnect();
+      recipientCert = smtpConnect();
+      recipientCert.then((cert) => {
+        console.log("finished:");
+        console.log(cert);
+
+
+        //DONT CLOSE WINDOW. UPDATE MESSAGE and send mail
+        closeLoadingWindowAndConitnueSending();
+      })
     });
   }
 }
