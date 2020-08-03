@@ -1,0 +1,38 @@
+[
+    {
+      "namespace": "certificateManagement",
+      "functions": [
+        {
+          "name": "import_cert",
+          "type": "function",
+          "description": "import a certificate, for a given recipient, to the known certificates",
+          "async": true,
+          "parameters": [
+            {
+              "name": "recipient",
+              "type": "string",
+              "description": "recipient mail address"
+            },
+            {
+              "name": "certificate",
+              "type": "string",
+              "description": "the certificate for the corresponding recipient"
+            }
+          ]
+        },
+        {
+          "name": "get_smtp_server",
+          "type": "function",
+          "description": "extract the current outgoing smtp server for a given identity ID",
+          "async": true,
+          "parameters": [
+            {
+              "name": "identityId",
+              "type": "string",
+              "description": "identity we want the current smtp server for"
+            }
+          ]
+        }
+      ]
+    }
+  ]

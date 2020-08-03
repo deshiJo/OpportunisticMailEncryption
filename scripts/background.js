@@ -3,11 +3,13 @@
 let promiseMap = new Map();
 var activated = true;
 
-let errorWindowID
+let errorWindowID;
 var currentErrorMessage = "";
 
 let loadingWindowID;
 let loadingWindowResolve;
+
+let composeTabId;
 
 
 /**
@@ -250,27 +252,51 @@ browser.compose.onBeforeSend.addListener(() => {
 function onSendPerformed() {  
   //check if certificate already present
   var present = false; //TODO
-  if (present) {
-    //yes: check revocation
+       
+    var recipientPromise = extractRecipientAddressAndIdentityId();
+    recipientPromise.then((details)=> {
+      var recipientAddress = details[0];
+      var identityId = details[1];
+      outgoing_server = browser.certificateManagement.get_smtp_server(identityId);
 
-  } else {
-    var recipientPromise = extractRecipient();
-    recipientPromise.then((to)=> {
-      console.log(to);
-      recipientAddress = to;
-      //No:create connection to outgoing smtp server and send xcertreq
-      //TODO: add arguments for the recipient address and outgoing mail server
-      recipientCert = smtpConnect();
-      recipientCert.then((cert) => {
-        console.log("finished:");
-        console.log(cert);
+      outgoing_server.then((info) => {
+
+        console.log(info);
 
 
-        //DONT CLOSE WINDOW. UPDATE MESSAGE and send mail
-        closeLoadingWindowAndConitnueSending();
-      })
+        if (present) {
+          //yes: check revocation
+          // try to set require encryption true
+        } else {
+          // console.log(recipientAddress);
+          // console.log(identityId);
+
+          //extract outgoing smtp for the identity
+          
+
+          //No:create connection to outgoing smtp server and send xcertreq
+          //TODO: add arguments for the recipient address and outgoing mail server
+          recipientCert = smtpConnect();
+          recipientCert.then((cert) => {
+            console.log("finished:");
+            console.log(cert);
+
+            // try to set require encryption true
+            // browser.tabs.executeScript(composeTabId, {
+            //   code: "document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
+            // });
+
+            // try to import the cert for the recipient address
+            // browser.tabs.executeScript(composeTabId, {
+
+            // });
+
+            //DONT CLOSE WINDOW. UPDATE MESSAGE and send mail
+            closeLoadingWindowAndConitnueSending();
+          })
+        }
+      });
     });
-  }
 }
 
 /**
@@ -332,6 +358,7 @@ function getComposeDetails(composeWindow) {
   }
   // browser.compose.getComposeDetails(25);
   console.log("compose tab id: "+ tabs[0].id);
+  composeTabId = tabs[0].id;
   var composeDetails = browser.compose.getComposeDetails(tabs[0].id);
   composeDetails.then((composeDetails) => {
     console.log(composeDetails);
@@ -346,9 +373,9 @@ function getSenderID(composeDetails) {
 
 
 /**
- * get the 
+ * get the recipient address and the current identity, used in the compose window
  */
-function extractRecipient() {
+function extractRecipientAddressAndIdentityId() {
   let composeWindow = getComposeWindow();
   let result = new Promise(function(resolve,reject) {
         //set datastructure / map with identityID/sender and recipient
@@ -363,7 +390,7 @@ function extractRecipient() {
         
         // console.log(composeDetails.identityId);
         // console.log(composeDetails.to);
-        resolve(composeDetails.to);
+        resolve([composeDetails.to, composeDetails.identityId]);
         //search mail address from this identity. Docu says, that composeDetails has a field identity, but there is only identityId.
         //Change if this is fixed.
         
@@ -389,6 +416,11 @@ On click toggle opportunistic encryption
 browser.composeAction.onClicked.addListener(() => {
   //Toggle button. Activate/deactivate opportunistic encryption
   activated = !activated;
+
+  promise = browser.certificateManagement.import_cert("","");
+  // promise.then((result) => {
+  //   console.log(result);
+  // })
 
 
   //test get from; to; infos from compose window
@@ -420,6 +452,10 @@ browser.composeAction.onClicked.addListener(() => {
   if(activated) {
 
     console.log("activate opportunistic encryption mode");
+    // browser.tabs.executeScript(composeTabId, {
+    //   code: "document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
+    // });
+
     //browser.composeAction.setBadgeBackgroundColor("#FF0000");
     browser.composeAction.setTitle({
       title: "on"

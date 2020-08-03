@@ -2,6 +2,16 @@
   "manifest_version": 2,
   "description": "This addon implements an approach for opportunistic email encryption, through trust-on-first-use (LINK!!!). The mail client sends a esmtp command 'xcertreq:<recipient>' to request a certificate.",
   "name": "opportunistic encryption",
+  "experiment_apis": {
+    "certificateManagement": {
+      "schema": "schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "paths": [["certificateManagement"]],
+        "script": "scripts/manage_certs.js"
+      }
+    }
+  },
   "author": "Joachim Müssig",
   "version": "1",
   "applications": {
