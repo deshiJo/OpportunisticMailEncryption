@@ -32,6 +32,7 @@ QUIT = "QUIT"
 CRLF = "\r\n"
 #https://www.regextester.com/19
 mail_regex = re.compile("^[a-zA-Z0-9.!#$%&'*+=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+prefs_path = "~/.thunderbird/xxxxxxxx.default/"
 
 try:
     # Python 3.x version
@@ -61,14 +62,22 @@ try:
         r = response.decode()
         return r[:3]
 
-    def start_Exchange(server, recipient):
+    def start_Exchange(server, port, recipient):
+        recipient = "<"+recipient+">"
+        try:
+            port = int(port)
+        except:
+            #TODO handle str to int exception
+            pass
 
         #for tests: remove these:
-        server = "mail1.de"
-        server = "testmail"
-        port = 25
-        recipient = "<joachim@testmail>"
-        #recipient = "<joachim@mail1>"
+        # server = "mail1.de"
+        # server = "testmail"
+        # server = "mail2"
+        # port = 25
+        # recipient = "<joachim@testmail>"
+        # recipient = "<joachim@mail2>"
+        # recipient = "<joachim@mail1>"
 
         fqdn = socket.getfqdn().encode()
         # server_info = (server, port)
@@ -148,12 +157,21 @@ try:
                 #unknown message
                 sendMessage(encodeMessage(FAIL))
         elif receivedMessage.startswith(SERVER):
-            #TODO edit if I know, how to extract this information
-            # maybe access prefs.js instead of getting through message ? 
-            sendMessage(encodeMessage(OK_SERVER))
-            start_Exchange(server, recipient)
-
-            #break ? 
+            splittedServer = receivedMessage.split(SERVER)
+            if len(splittedServer) == 2:
+                server_port = splittedServer[1].split(":")
+                if len(server_port) == 2:
+                    server = server_port[0]
+                    port = server_port[1]
+                    sendMessage(encodeMessage(OK_SERVER))
+                    start_Exchange(server, port, recipient)
+                else:
+                    sendMessage(encodeMessage(FAIL+" : could not seperate port, host"))
+            else:
+                sendMessage(encodeMessage(FAIL+": could not extract outgoing server information"))
+        else:
+            sendMessage(encodeMessage(FAIL+" : unknown message to client.py"))
+        #break ? 
             
 except AttributeError:
     pass

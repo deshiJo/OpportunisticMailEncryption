@@ -276,7 +276,7 @@ function onSendPerformed() {
 
           //No:create connection to outgoing smtp server and send xcertreq
           //TODO: add arguments for the recipient address and outgoing mail server
-          recipientCert = smtpConnect();
+          recipientCert = smtpConnect(recipientAddress, info);
           recipientCert.then((cert) => {
             console.log("finished:");
             console.log(cert);

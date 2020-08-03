@@ -42,13 +42,15 @@ var running = true;
 //https://developer.thunderbird.net/add-ons/updating/tb68/changes
 //https://developer.thunderbird.net/add-ons/updating/tb78
 //ALLES ANDERE SCHEINT VERALTET !?
-function smtpConnect() {
+function smtpConnect(recipient_Addr, outgoing_SMTP) {
 
     //TODO: reject the promise on error ?!
     let result = new Promise(function(resolve,reject) {
         var port = browser.runtime.connectNative("smtp_client");
-        var outgoingSMTP = "mail1.de:25";
-        var recipientAddr = "joachim@mail1";
+        // var outgoingSMTP = "mail1.de:25";
+        // var recipientAddr = "joachim@mail1";
+        var recipientAddr = recipient_Addr;
+        var outgoingSMTP = outgoing_SMTP[0]+":"+outgoing_SMTP[1];
         var finished = false;
         running = true;
         //30 sec timeout
@@ -77,12 +79,13 @@ function smtpConnect() {
             if(response === OK_RECV) {
                 console.log("   Received: " + response);
                 console.log("   Sending outgoing server: "+ outgoingSMTP);
+                console.log("SERVER: "+ outgoingSMTP);
                 port.postMessage("SERVER: "+ outgoingSMTP);
             }
             else if(response === OK_SERVER) {
                 console.log("   Received: " + response);
             }
-            else if(response === FAIL) {
+            else if(response.startsWith(FAIL)) {
                 console.log("   Received: " + response);
                 //something went wrong: abort
                 error_message = FAIL;
