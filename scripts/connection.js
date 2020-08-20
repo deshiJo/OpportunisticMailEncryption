@@ -15,6 +15,7 @@ const TIMEOUT = "TIMEOUT";
 const NOT_SUPPORTED = "NOT_SUPPORTED";
 const CERT_RESPONSE = "CERT: ";
 const TLS_ERROR = "TLS_ERROR";
+const NOT_TRUSTED = "NOT_TRUSTED";
 const WHITESPACE = " ";
 var running = true;
 //TODO: put constants in a seperat file, to share these with background.js, connection.js,...
@@ -126,7 +127,7 @@ function smtpConnect(recipient_Addr, outgoing_SMTP) {
                     // abort(port, "success", "");
 
                     //TODO now use the certificate for encryption and send mail encrypted
-                    console.log(splitted[1]);
+                    //console.log(splitted[1]);
                     resolve(splitted[1]);
                 }
                 else {
