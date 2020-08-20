@@ -119,13 +119,15 @@ try:
             # sendMessage(encodeMessage(OK+"send xcert req"))
             # sendMessage(encodeMessage(request))
             scc.send(XCERTREQ.encode()+ b":"+recipient.encode()+CRLF.encode())
-            r = scc.recv(1024)
+            r = scc.recv(4096)
+
+            #TODO: change for receiving multiple 250 responses (i.e signature pk)
             if extractStatusCode(r) == '250':
                 sendMessage(encodeMessage(OK+r.decode()))
                 cert = r.decode()
                 #close connection
                 scc.send(QUIT.encode()+CRLF.encode())
-                r = scc.recv(1024) 
+                r = scc.recv(4096) 
                 # sendMessage(encodeMessage(OK+r.decode()))
                 sendMessage(encodeMessage(SUCCESS+": "+cert))
                 return
