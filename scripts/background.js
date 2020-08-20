@@ -116,6 +116,9 @@ function abortProtocol(error) {
       case TLS_ERROR:
         currentErrorMessage = "Error while starting tls connection\n. Try again or get recipient key manually, if this error occures again";
         break;
+      case NOT_TRUSTED:
+        currentErrorMessage = "Cant trust the certificate";
+        break;
       default:
         currentErrorMessage = "Something went wrong.";
         break;
@@ -278,9 +281,19 @@ function onSendPerformed() {
           //TODO: add arguments for the recipient address and outgoing mail server
           recipientCert = smtpConnect(recipientAddress, info);
           recipientCert.then((cert) => {
-            console.log("finished:");
-            console.log(cert);
+            var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert);
+            // ok = false;
+            ok.then((value) => {
+              console.log("OK: " +value);
+              if(value) {
+                console.log("try send encrypted");
+                closeLoadingWindowAndConitnueSending();
 
+              } else {
+                console.log("abort sending");
+                abortProtocol(NOT_TRUSTED);
+              }
+            });
             // try to set require encryption true
             // browser.tabs.executeScript(composeTabId, {
             //   code: "document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
@@ -292,7 +305,6 @@ function onSendPerformed() {
             // });
 
             //DONT CLOSE WINDOW. UPDATE MESSAGE and send mail
-            closeLoadingWindowAndConitnueSending();
           })
         }
       });
@@ -417,7 +429,6 @@ browser.composeAction.onClicked.addListener(() => {
   //Toggle button. Activate/deactivate opportunistic encryption
   activated = !activated;
 
-  promise = browser.certificateManagement.import_cert("","");
   // promise.then((result) => {
   //   console.log(result);
   // })
