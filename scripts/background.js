@@ -287,6 +287,9 @@ function onSendPerformed() {
               console.log("OK: " +value);
               if(value) {
                 console.log("try send encrypted");
+                browser.tabs.executeScript(composeTabId, {
+                  code: "console.log(document); document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
+                });
                 closeLoadingWindowAndConitnueSending();
 
               } else {
@@ -295,6 +298,8 @@ function onSendPerformed() {
               }
             });
             // try to set require encryption true
+
+            // browser.tabs.executeScript(composeTabId, {code: `document.body.textContent = "Hey look, the script ran!";`,});
             // browser.tabs.executeScript(composeTabId, {
             //   code: "document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
             // });
@@ -475,6 +480,13 @@ browser.composeAction.onClicked.addListener(() => {
       //https://graphemica.com/%E2%9C%94
       text:"✔"
     });
+
+    //set require encryption true
+    // document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true';
+    // document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';
+    // document.getElementById('encTech_SMIME_Toolbar').checked='true';
+    // document.getElementById('encTech_OpenPGP_Toolbar').checked='false';
+
   } else {
     console.log("deactivate opportunistic encryption mode");
     //browser.composeAction.setBadgeBackgroundColor("#FFFFFF");

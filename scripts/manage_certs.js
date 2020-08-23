@@ -90,15 +90,13 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               console.log(new_cert);
 
               var cert_property_mail = new_cert.emailAddress;
-              console.log(cert_property_mail);
+              var cert_property_fingerprint = new_cert.sha256Fingerprint;
+
               if (!new_cert.containsEmailAddress(recipientID)) {
                 console.log("certificate for wrong mail : " );
                 //TODO: error message, with security warning ?
-                return;
+                return false;
               }
-              var cert_property_issuerCert = new_cert.issuer;
-              console.log(cert_property_issuerCert);
-
 
 
               /**
@@ -111,21 +109,75 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               // var certdb = Components.classes["@mozilla.org/security/x509certdb;1"].getService(Components.interfaces.nsIX509CertDB);
               var match = null;
               var certs = certdb.getCerts();
-              for (const cert in certs) {
-                if (recipientID.localeCompare(cert.emailAddress)) {
-                  console.log("cert found");
-                  //found
-                  match = cert;
+              console.log(certs);
+              for (var i = 0; i<certs.length; i++) {
+                if (!(cert_property_mail.localeCompare(certs[i].emailAddress))) {
+                    //found
+                    console.log("cert found");
+                    console.log(certs[i]);
+                    match = certs[i];
+                    break;
                 }
               }
 
-              // var match = search_certificate(recipientID);
-              // match = certdb.findCertByEmailAddress(null, recipientID);
 
               //certificate for this mail already present
               if (match) {
                 console.log("certificate already present for this requested mail");
+                /**
+                 * the old certificate could be revoced or is expired. 
+                 * If the received certificate is new, check if it is signed with the same private key.  
+                 * Otherwise security warning.
+                */
+
+                if (!(match.sha256Fingerprint.localeCompare(cert_property_fingerprint))) {
+                  /**
+                   * saved certificate is identical -> nothing changed
+                   */
+                  if (certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
+                    return true;
+                  } else {
+                    console.log("cannot trust certificate");
+                    return false;
+                  }
+
+                } else {
+                  /**
+                   * the certificate is different to the saved one 
+                   * -> check if the signature is created with the same private key.
+                   * (issuer certificate/sk should not change often)
+                   */
+                  console.log("the certificate is new !");
+                  if (certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
+
+                  }
+
+                  same_sk = true; //debug
+                  if (same_sk) {
+                    /**
+                     * save new certificate and delete old
+                     */
+                    var name = "xcertreq"+recipientID;
+                    console.log("save certificate as new and deleted old");
+                    var debug = true;
+                    if (debug) {
+                      console.log("debug delete old and save new: "+ match.emailAddress);
+                    } else {
+                      certdb.deleteCertificate(match);
+                      certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
+                    }
+                    return true;
+                  } else {
+                    //security warning
+                  }
+                }
+
                 //check certificate with known pk for this domain
+                var cert_property_chain = new_cert.getChain();
+                console.log(cert_property_chain);
+
+
+
                 // var dom_cert = search_domain_certificate();
                 return true;
 
@@ -133,6 +185,20 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 //cert = 
                 console.log("no certificate for this mail address present.");
                 //TODO: can we trust this cert ? check signature of this cert, if we already have a certificate for this requested mail
+
+                /**
+                 * "Query whether a certificate is trusted for a particular use. "
+                 * if we have 
+                */
+                if (certdb.isCertTrusted(new_cert, , nsIX509CertDB.TRUSTED_EMAIL))
+
+                //also check if we seen certificates for this domain
+                domain_known = false; //debug
+                if (domain_known) {
+
+                } else {
+
+                }
 
                 var name = "xcertreq"+recipientID;
                 console.log("save received cert");
