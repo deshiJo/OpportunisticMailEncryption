@@ -30,7 +30,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
           //TODO: change if we add more information in the base 64 response (certificate), i.e it contains signature from company etc.
 
 
-          if(smime) {
+          if (smime) {
             // https://gist.github.com/richieforeman/3166387
             // https://www.xulplanet.com/references/xpcomref/comps/c_securityx509certdb1/
             if (typeof Cc == "undefined") { Cc = Components.classes; }
@@ -58,18 +58,18 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
             // b64_certificate = b64_certificate.replace(/(.*)-----BEGIN CERTIFICATE-----/, "")
             // b64_certificate = b64_certificate.replace(/-----END CERTIFICATE-----(.*)/, "")
 
-              // if (b64_certificate.includes("BEGIN TRUSTED CERTIFICATE")) {
-              //   // cut the first line:
-              //   b64_certificate = b64_certificate.substring(b64_certificate.indexOf("\n") + 1);
-              // }
-              // while (b64_certificate.includes("END TRUSTED CERTIFICATE")) {
-              //   //remove all lines after the end of encoded string
-              //   b64_certificate = b64_certificate.substring(0, b64_certificate.lastIndexOf("\n"));
-              // }
+            // if (b64_certificate.includes("BEGIN TRUSTED CERTIFICATE")) {
+            //   // cut the first line:
+            //   b64_certificate = b64_certificate.substring(b64_certificate.indexOf("\n") + 1);
+            // }
+            // while (b64_certificate.includes("END TRUSTED CERTIFICATE")) {
+            //   //remove all lines after the end of encoded string
+            //   b64_certificate = b64_certificate.substring(0, b64_certificate.lastIndexOf("\n"));
+            // }
 
-              // //remove new lines
-              //TODO: extract mail from certificate and compare with the mail we requested the certificate for.
-              // var new_cert = certdb.constructX509FromBase64(b64_certificate.trim());
+            // //remove new lines
+            //TODO: extract mail from certificate and compare with the mail we requested the certificate for.
+            // var new_cert = certdb.constructX509FromBase64(b64_certificate.trim());
             //var certdb = Components.classes["@mozilla.org/security/x509certdb;1"].getService(Components.interfaces.nsIX509CertDB);
             // certdb.importCertsFromFile(fp.file, Ci.nsIX509Cert.EMAIL_CERT);
 
@@ -93,7 +93,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               var cert_property_fingerprint = new_cert.sha256Fingerprint;
 
               if (!new_cert.containsEmailAddress(recipientID)) {
-                console.log("certificate for wrong mail : " );
+                console.log("certificate for wrong mail : ");
                 //TODO: error message, with security warning ?
                 return false;
               }
@@ -110,26 +110,26 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               var match = null;
               var certs = certdb.getCerts();
               //console.log(certs);
-              for (var i = 0; i<certs.length; i++) {
+              for (var i = 0; i < certs.length; i++) {
                 if (!(cert_property_mail.localeCompare(certs[i].emailAddress))) {
-                    //found
-                    console.log("cert found");
-                    //console.log(certs[i]);
-                    match = certs[i];
-                    break;
+                  //found
+                  console.log("cert found");
+                  //console.log(certs[i]);
+                  match = certs[i];
+                  break;
                 }
               }
 
-	      var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-	      let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
+              var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+              let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
 
 
               //certificate for this mail already present
               if (match) {
                 console.log("certificate already present for this requested mail");
-		    
-		var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
-		console.log("trusted: "+isTrusted);
+
+                var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL);
+                console.log("trusted : " + isTrusted);
 		 //console.log(document.getElementById("menu_securityEncryptRequire_Toolbar"));
 
 		      //let msgComposeParams = Components.classes["@mozilla.org/messengercompose;1"].getService(Components.interfaces.nsIMsgComposeService);
@@ -179,8 +179,8 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                    * saved certificate is identical -> nothing changed
                    */
                   if (isTrusted) {
-	            console.log("use saved certificate");
-		    recentWindow.onSecurityChoice("enc2");
+                    console.log("use saved certificate");
+                    recentWindow.onSecurityChoice("enc2");
                     return true;
                   } else {
                     console.log("cannot trust certificate");
@@ -203,16 +203,16 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                     /**
                      * save new certificate and delete old
                      */
-                    var name = "xcertreq"+recipientID;
+                    var name = "xcertreq" + recipientID;
                     console.log("save certificate as new and deleted old");
                     var debug = true;
                     if (debug) {
-                      console.log("debug delete old and save new: "+ match.emailAddress);
+                      console.log("debug delete old and save new: " + match.emailAddress);
                     } else {
                       certdb.deleteCertificate(match);
-                      certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
+                      certdb.addCertFromBase64(b64_certificate, 'Cu,,', name);
                     }
-		    recentWindow.onSecurityChoice("enc2");
+                    recentWindow.onSecurityChoice("enc2");
                     return true;
                   } else {
                     //security warning
@@ -223,10 +223,8 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 var cert_property_chain = new_cert.getChain();
                 console.log(cert_property_chain);
 
-
-
                 // var dom_cert = search_domain_certificate();
-		recentWindow.onSecurityChoice("enc2");
+                recentWindow.onSecurityChoice("enc2");
                 return true;
 
               } else {
