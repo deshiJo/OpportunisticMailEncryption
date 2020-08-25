@@ -87,7 +87,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               var certs = certdb.getCerts();
               let new_cert = certdb.constructX509FromBase64(b64_certificate);
               console.log("sucessfully created certificate object ");
-              console.log(new_cert);
+              //console.log(new_cert);
 
               var cert_property_mail = new_cert.emailAddress;
               var cert_property_fingerprint = new_cert.sha256Fingerprint;
@@ -109,21 +109,65 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               // var certdb = Components.classes["@mozilla.org/security/x509certdb;1"].getService(Components.interfaces.nsIX509CertDB);
               var match = null;
               var certs = certdb.getCerts();
-              console.log(certs);
+              //console.log(certs);
               for (var i = 0; i<certs.length; i++) {
                 if (!(cert_property_mail.localeCompare(certs[i].emailAddress))) {
                     //found
                     console.log("cert found");
-                    console.log(certs[i]);
+                    //console.log(certs[i]);
                     match = certs[i];
                     break;
                 }
               }
 
+	      var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+	      let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
+
 
               //certificate for this mail already present
               if (match) {
                 console.log("certificate already present for this requested mail");
+		    
+		var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
+		console.log("trusted: "+isTrusted);
+		 //console.log(document.getElementById("menu_securityEncryptRequire_Toolbar"));
+
+		      //let msgComposeParams = Components.classes["@mozilla.org/messengercompose;1"].getService(Components.interfaces.nsIMsgComposeService);
+		      //console.log(msgComposeParams);
+		      //console.log(windows.getCurrent(null));
+		      //console.log(recentWindow);
+		      //recentWindow.onSecurityChoice("enc2");
+		      //recentWindow.onSendSMIME("enc2");
+
+		      //var all = recentWindow.document.getElementsByTagName("*");
+
+		      //console.log(recentWindow.document.getElementById('menu_securityEncryptRequire_Toolbar'));
+		      //console.log(recentWindow.document.getElementById('menu_securityEncryptRequire_Menubar'));
+		      //var notFound = false;
+		      //var security_toolbar = recentWindow.document.getElementById('menu_securityEncryptRequire_Toolbar');
+		      //var security_options = recentWindow.document.getElementById('button-security');
+		      //console.log(security_options);
+			//console.log(security_options.getAttribute("oncommand"));
+			//var security_option_function = security_options.getAttribute("oncommand");
+		      //console.log(typeof security_option_function);
+		      //security_option_function.apply("enc2");
+
+		      //if (typeof security_option_function == "function") {
+			      
+		      //}
+
+		      //console.log(security_toolbar.attributes);
+		      //security_toolbar.setAttribute(checked, true);
+		      //console.log(security_toolbar.getAttribute(checked));
+		      //console.log(security_toolbar.checked);
+		      //var security_menu = recentWindow.document.getElementById('menu_securityEncryptRequire_Menubar');
+		      //while(notFound) {
+			      //var next = security_toolbar.nextElementSibling;	
+			      
+
+		      //}
+		      //console.log(recentWindow.document.getElementById('menu_securityEncryptRequire'));
+
                 /**
                  * the old certificate could be revoced or is expired. 
                  * If the received certificate is new, check if it is signed with the same private key.  
@@ -134,7 +178,9 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                   /**
                    * saved certificate is identical -> nothing changed
                    */
-                  if (certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
+                  if (isTrusted) {
+	            console.log("use saved certificate");
+		    recentWindow.onSecurityChoice("enc2");
                     return true;
                   } else {
                     console.log("cannot trust certificate");
@@ -148,7 +194,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                    * (issuer certificate/sk should not change often)
                    */
                   console.log("the certificate is new !");
-                  if (certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL)) {
+                  if (isTrusted) {
 
                   }
 
@@ -166,6 +212,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                       certdb.deleteCertificate(match);
                       certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
                     }
+		    recentWindow.onSecurityChoice("enc2");
                     return true;
                   } else {
                     //security warning
@@ -179,6 +226,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
 
 
                 // var dom_cert = search_domain_certificate();
+		recentWindow.onSecurityChoice("enc2");
                 return true;
 
               } else {
@@ -190,10 +238,10 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                  * "Query whether a certificate is trusted for a particular use. "
                  * if we have 
                 */
-                if (certdb.isCertTrusted(new_cert, , nsIX509CertDB.TRUSTED_EMAIL))
+                //if (certdb.isCertTrusted(new_cert, , nsIX509CertDB.TRUSTED_EMAIL))
 
                 //also check if we seen certificates for this domain
-                domain_known = false; //debug
+                var domain_known = false; //debug
                 if (domain_known) {
 
                 } else {
@@ -206,6 +254,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 //certdb.addCertFromBase64(certifcate, "C,C,C", name) //TODO check second param
                 // let der = atob(b64);
                 certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
+		recentWindow.onSecurityChoice("enc2");
                 return true;
               }
             } catch (e) { 

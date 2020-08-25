@@ -9,6 +9,8 @@ var currentErrorMessage = "";
 let loadingWindowID;
 let loadingWindowResolve;
 
+let composeWindow;
+
 let composeTabId;
 
 
@@ -265,53 +267,27 @@ function onSendPerformed() {
       outgoing_server.then((info) => {
 
         console.log(info);
-
-
-        if (present) {
-          //yes: check revocation
-          // try to set require encryption true
-        } else {
-          // console.log(recipientAddress);
-          // console.log(identityId);
-
-          //extract outgoing smtp for the identity
-          
-
-          //No:create connection to outgoing smtp server and send xcertreq
-          //TODO: add arguments for the recipient address and outgoing mail server
           recipientCert = smtpConnect(recipientAddress, info);
           recipientCert.then((cert) => {
+
+	    /**
+	     *check received certificate and send encrypted if possible
+	     */
             var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert);
             // ok = false;
             ok.then((value) => {
               console.log("OK: " +value);
+		value = true;
               if(value) {
                 console.log("try send encrypted");
-                browser.tabs.executeScript(composeTabId, {
-                  code: "console.log(document); document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
-                });
                 closeLoadingWindowAndConitnueSending();
-
               } else {
                 console.log("abort sending");
                 abortProtocol(NOT_TRUSTED);
               }
             });
-            // try to set require encryption true
-
-            // browser.tabs.executeScript(composeTabId, {code: `document.body.textContent = "Hey look, the script ran!";`,});
-            // browser.tabs.executeScript(composeTabId, {
-            //   code: "document.getElementById('menu_securityEncryptRequire_Toolbar').checked='true'; document.getElementById('menu_securityEncryptDisable_Toolbar').checked='false';"
-            // });
-
-            // try to import the cert for the recipient address
-            // browser.tabs.executeScript(composeTabId, {
-
-            // });
-
-            //DONT CLOSE WINDOW. UPDATE MESSAGE and send mail
           })
-        }
+        //}
       });
     });
 }
@@ -393,7 +369,7 @@ function getSenderID(composeDetails) {
  * get the recipient address and the current identity, used in the compose window
  */
 function extractRecipientAddressAndIdentityId() {
-  let composeWindow = getComposeWindow();
+  composeWindow = getComposeWindow();
   let result = new Promise(function(resolve,reject) {
         //set datastructure / map with identityID/sender and recipient
     composeWindow.then((composeWindow) => {
