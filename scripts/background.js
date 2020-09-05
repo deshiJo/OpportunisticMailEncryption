@@ -121,6 +121,8 @@ function abortProtocol(error) {
       case NOT_TRUSTED:
         currentErrorMessage = "Cant trust the certificate";
         break;
+      case NO_CERT:
+        currentErrorMessage = "No Certificate found for this user.\n";
       default:
         currentErrorMessage = "Something went wrong.";
         break;

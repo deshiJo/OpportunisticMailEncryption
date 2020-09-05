@@ -21,6 +21,7 @@ SERVER = "SERVER: "
 SUCCESS = "SUCCESS"
 FAIL = "FAIL"
 NOT_SUPPORTED = "NOT_SUPPORTED"
+NO_CERT = "NO_CERT"
 CERT_RESPONSE = "CERT: "
 TLS_ERROR = "TLS_ERROR"
 OK = "OK: "
@@ -131,6 +132,11 @@ try:
                 # sendMessage(encodeMessage(OK+r.decode()))
                 sendMessage(encodeMessage(SUCCESS+": "+cert))
                 return
+
+            elif extractStatusCode(r) == '510':
+                scc.send(QUIT.encode()+CRLF.encode())
+                sendMessage(encodeMessage(NO_CERT))
+                #TODO no certificate for the recipient
 
             # elif extractStatusCode(r) == ...
 
