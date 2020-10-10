@@ -132,7 +132,6 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.EMAIL_CERT, nsIX509CertDB.TRUSTED_EMAIL);
 
 		//TODO: check if domain is the same ca als the last one
-		var 
                 console.log("trusted : " + isTrusted);
 		/**
 		 * for debugging
