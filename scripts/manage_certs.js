@@ -128,8 +128,17 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
               if (match) {
                 console.log("certificate already present for this requested mail");
 
-                var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.CA_CERT, nsIX509CertDB.TRUSTED_EMAIL);
+		//is trusted just checks if we trust the signing CA. But we have to check if the Domain CA is the correct one!
+                var isTrusted = certdb.isCertTrusted(new_cert, nsIX509Cert.EMAIL_CERT, nsIX509CertDB.TRUSTED_EMAIL);
+
+		//TODO: check if domain is the same ca als the last one
+		var 
                 console.log("trusted : " + isTrusted);
+		/**
+		 * for debugging
+		 */
+		isTrusted = true;
+
 		 //console.log(document.getElementById("menu_securityEncryptRequire_Toolbar"));
 
 		      //let msgComposeParams = Components.classes["@mozilla.org/messengercompose;1"].getService(Components.interfaces.nsIMsgComposeService);
@@ -174,6 +183,8 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                  * Otherwise security warning.
                 */
 
+
+
                 if (!(match.sha256Fingerprint.localeCompare(cert_property_fingerprint))) {
                   /**
                    * saved certificate is identical -> nothing changed
@@ -210,7 +221,8 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                       console.log("debug delete old and save new: " + match.emailAddress);
                     } else {
                       certdb.deleteCertificate(match);
-                      certdb.addCertFromBase64(b64_certificate, 'Cu,,', name);
+                      //certdb.addCertFromBase64(b64_certificate, 'Cu,,', name);
+                      certdb.addCertFromBase64(b64_certificate,',P,',name);
                     }
                     recentWindow.onSecurityChoice("enc2");
                     return true;
@@ -241,8 +253,12 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 //also check if we seen certificates for this domain
                 var domain_known = false; //debug
                 if (domain_known) {
+			//Domain known -> check if we can trust this cert
+			//
 
                 } else {
+			//Domain not known -> trust on first use
+			//save the domain cert and remeber this cert for this domain
 
                 }
 
@@ -251,7 +267,13 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
                 
                 //certdb.addCertFromBase64(certifcate, "C,C,C", name) //TODO check second param
                 // let der = atob(b64);
-                certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
+                //certdb.addCertFromBase64(b64_certificate,'Cu,,',name);
+                //certdb.addCertFromBase64(b64_certificate,',CPu,',name);
+
+		//TODO: the trust string (second parameter) could be wrong. But its hard to find a documentation...
+		//find a correct way to add the received certificate 
+                //certdb.addCertFromBase64(b64_certificate,',P,',name);
+                certdb.addCertFromBase64(b64_certificate,nsIX509CertDB.TRUSTED_EMAIL,name);
 		recentWindow.onSecurityChoice("enc2");
                 return true;
               }
