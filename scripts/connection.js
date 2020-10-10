@@ -13,6 +13,7 @@ const FAIL = "FAIL";
 const SUCCESS = "SUCCESS"
 const TIMEOUT = "TIMEOUT";
 const NOT_SUPPORTED = "NOT_SUPPORTED";
+const NO_CERT = "NO_CERT";
 const CERT_RESPONSE = "CERT: ";
 const TLS_ERROR = "TLS_ERROR";
 const NOT_TRUSTED = "NOT_TRUSTED";
@@ -76,71 +77,83 @@ function smtpConnect(recipient_Addr, outgoing_SMTP) {
         // port.postMessage(outgoingSMTP);
 
         port.onMessage.addListener((response) => {
-            // console.log("   Received: " + response);
-            if(response === OK_RECV) {
-                console.log("   Received: " + response);
-                console.log("   Sending outgoing server: "+ outgoingSMTP);
-                console.log("SERVER: "+ outgoingSMTP);
-                port.postMessage("SERVER: "+ outgoingSMTP);
-            }
-            else if(response === OK_SERVER) {
-                console.log("   Received: " + response);
-            }
-            else if(response.startsWith(FAIL)) {
-                console.log("   Received: " + response);
-                //something went wrong: abort
-                error_message = FAIL;
-                abort(port,"FAIL response from client: abort",error_message);
-            }
-            else if(response.startsWith(CERT_RESPONSE)) {
-                console.log("   Received: " + response);
-                finished=true;
-                splittedResponse = response.split(WHITESPACE);
-            }
-            else if (response.startsWith("OK: ")) {
-                splitted = response.split("OK: ");
-                if(splitted.length > 1) {
-                    console.log("   "+ "SMTP response: " + splitted[1]);
+            try {
+                // console.log("   Received: " + response);
+                if (response === OK_RECV) {
+                    console.log("   Received: " + response);
+                    console.log("   Sending outgoing server: " + outgoingSMTP);
+                    console.log("SERVER: " + outgoingSMTP);
+                    port.postMessage("SERVER: " + outgoingSMTP);
                 }
-            }
-            else if (response.startsWith(TLS_ERROR)) {
-                splitted = response.split(TLS_ERROR);
-                if (splitted.length > 1) {
-                    console.log("   ERROR:"+ splitted[1]);
-
+                else if (response === OK_SERVER) {
+                    console.log("   Received: " + response);
                 }
-                error_message = TLS_ERROR;
-                abort(port, "STARTTLS exchange error", error_message);
-            }
-            else if (response === NOT_SUPPORTED) {
-                console.log("   Received: "+ response);
-                error_message = NOT_SUPPORTED;        
-                abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort", error_message);
-            }
-            else if (response.startsWith(SUCCESS)) {
-                console.log(response);
-                splitted = response.split(SUCCESS+": 250 XCERTREQ ");
-                if (splitted.length > 1 ) {
+                else if (response.startsWith(FAIL)) {
+                    console.log("   Received: " + response);
+                    //something went wrong: abort
+                    error_message = FAIL;
+                    abort(port, "FAIL response from client: abort", error_message);
+                }
+                else if (response === NO_CERT) {
+                    error_message = NO_CERT;
+                    abort(port, "   no certificate for the recipient", error_message);
+                }
+                else if (response.startsWith(CERT_RESPONSE)) {
+                    console.log("   Received: " + response);
                     finished = true;
-
-                    //only for debugging:
-                    // abort(port, "success", "");
-
-                    //TODO now use the certificate for encryption and send mail encrypted
-                    //console.log(splitted[1]);
-                    resolve(splitted[1]);
+                    splittedResponse = response.split(WHITESPACE);
                 }
-                else {
-                    //TODO ERROR 
+                else if (response.startsWith("OK: ")) {
+                    splitted = response.split("OK: ");
+                    if (splitted.length > 1) {
+                        console.log("   " + "SMTP response: " + splitted[1]);
+                    }
                 }
+                else if (response.startsWith(TLS_ERROR)) {
+                    splitted = response.split(TLS_ERROR);
+                    if (splitted.length > 1) {
+                        console.log("   ERROR:" + splitted[1]);
 
-            } else {
-                //something went wrong: abort
-                console.log("   "+ "ERROR:" + response);
-                error_message = "DEFAULT";
-                abort(port,"wrong response from smtp client: abort",error_message);
-            }
-        });
+                    }
+                    error_message = TLS_ERROR;
+                    abort(port, "STARTTLS exchange error", error_message);
+                }
+                else if (response === NOT_SUPPORTED) {
+                    console.log("   Received: " + response);
+                    error_message = NOT_SUPPORTED;
+                    abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort", error_message);
+                }
+                else if (response.startsWith(SUCCESS)) {
+                    console.log(response);
+                    splitted = response.split(SUCCESS + ": 250 XCERTREQ ");
+                    if (splitted.length > 1) {
+                        finished = true;
+
+                        //only for debugging:
+                        // abort(port, "success", "");
+
+                        //TODO now use the certificate for encryption and send mail encrypted
+                        //console.log(splitted[1]);
+                        resolve(splitted[1]);
+                    }
+                    else {
+                        //TODO ERROR 
+                    }
+
+                } else {
+                    //something went wrong: abort
+                    console.log("   " + "ERROR:" + response);
+                    error_message = "DEFAULT";
+                    abort(port, "wrong response from smtp client: abort", error_message);
+                }
+                } catch (e) {
+                    //no timeout message if we receive exception
+                    running = false;
+                    console.log(e);
+                    abort(port, "exception caused xcert request interruption", "DEFAULT");
+                }
+            });
+
     });
     return result;
 }
