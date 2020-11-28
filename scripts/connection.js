@@ -18,6 +18,8 @@ const CERT_RESPONSE = "CERT: ";
 const TLS_ERROR = "TLS_ERROR";
 const NOT_TRUSTED = "NOT_TRUSTED";
 const WHITESPACE = " ";
+const DOMAIN = "DOMAIN";
+cert = "";
 var running = true;
 //TODO: put constants in a seperat file, to share these with background.js, connection.js,...
 
@@ -123,18 +125,26 @@ function smtpConnect(recipient_Addr, outgoing_SMTP) {
                     error_message = NOT_SUPPORTED;
                     abort(port, "STARTTLS or XCERTREQ not supported by the recipient server or outgoing server: abort", error_message);
                 }
-                else if (response.startsWith(SUCCESS)) {
+		else if (response.startsWith(SUCCESS)) {
                     console.log(response);
                     splitted = response.split(SUCCESS + ": 250 XCERTREQ ");
+                    if (splitted.length > 1) {
+                        cert = splitted[1];
+		    } else {
+			//TODO error
+		    }
+		}
+                else if (response.startsWith(DOMAIN)) {
+                    console.log(response);
+                    splitted = response.split(DOMAIN + ": 250 XCERTREQ ");
                     if (splitted.length > 1) {
                         finished = true;
 
                         //only for debugging:
                         // abort(port, "success", "");
 
-                        //TODO now use the certificate for encryption and send mail encrypted
                         //console.log(splitted[1]);
-                        resolve(splitted[1]);
+                        resolve({"cert": cert, "domain": splitted[1]});
                     }
                     else {
                         //TODO ERROR 

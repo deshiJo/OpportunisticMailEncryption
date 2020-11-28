@@ -29,6 +29,7 @@ WHITESPACE = " "
 EHLO = "EHLO "
 XCERTREQ = "XCERTREQ"
 STARTTLS = "STARTTLS"
+DOMAIN = "DOMAIN"
 QUIT = "QUIT"
 CRLF = "\r\n"
 #https://www.regextester.com/19
@@ -120,23 +121,36 @@ try:
             # sendMessage(encodeMessage(OK+"send xcert req"))
             # sendMessage(encodeMessage(request))
             scc.send(XCERTREQ.encode()+ b":"+recipient.encode()+CRLF.encode())
-            r = scc.recv(4096)
+            r = scc.recv(8096)
 
             #TODO: change for receiving multiple 250 responses (i.e signature pk)
             if extractStatusCode(r) == '250':
                 sendMessage(encodeMessage(OK+r.decode()))
                 cert = r.decode()
                 #close connection
-                scc.send(QUIT.encode()+CRLF.encode())
-                r = scc.recv(4096) 
+                #scc.send(QUIT.encode()+CRLF.encode())
+                #r = scc.recv(4096) 
                 # sendMessage(encodeMessage(OK+r.decode()))
                 sendMessage(encodeMessage(SUCCESS+": "+cert))
-                return
-
+                #return
             elif extractStatusCode(r) == '510':
                 scc.send(QUIT.encode()+CRLF.encode())
                 sendMessage(encodeMessage(NO_CERT))
                 #TODO no certificate for the recipient
+
+            r = scc.recv(4096)
+            if extractStatusCode(r) == '250':
+                sendMessage(encodeMessage(OK+r.decode()))
+                cert_domain = r.decode()
+                sendMessage(encodeMessage(DOMAIN+": "+cert_domain))
+                scc.send(QUIT.encode()+CRLF.encode())
+                r = scc.recv(4096) 
+                return
+            elif extractStatusCode(r) == '510':
+                scc.send(QUIT.encode()+CRLF.encode())
+                sendMessage(encodeMessage(NO_CERT))
+                #TODO no certificate for the recipient
+
 
             # elif extractStatusCode(r) == ...
 

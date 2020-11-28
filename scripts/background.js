@@ -270,8 +270,12 @@ function onSendPerformed() {
 
         console.log(info);
           recipientCert = smtpConnect(recipientAddress, info);
-          recipientCert.then((cert) => {
-
+          recipientCert.then((serverResponse) => {
+              console.log("SERVER RESPONSE:" +serverResponse);
+	    cert = serverResponse.cert; 
+	    domain_cert = serverResponse.domain;
+              console.log(" CERT " +cert);
+              console.log("DOMAIN CERT" +domain_cert);
 	    /**
 	     *check received certificate and send encrypted if possible
 	     */
