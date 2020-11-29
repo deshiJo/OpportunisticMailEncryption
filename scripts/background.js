@@ -279,14 +279,15 @@ function onSendPerformed() {
 	    /**
 	     *check received certificate and send encrypted if possible
 	     */
-            var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert);
+            var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
             // ok = false;
             ok.then((value) => {
               console.log("OK: " +value);
 		value = true;
               if(value) {
-                console.log("try send encrypted");
                 closeLoadingWindowAndConitnueSending();
+		console.log("now remove received certificate (necessary because of some import bugs)");
+		setTimeout(() => { browser.certificateManagement.remove_cert(String(recipientAddress));},2000);
               } else {
                 console.log("abort sending");
                 abortProtocol(NOT_TRUSTED);

@@ -17,9 +17,27 @@
               "name": "certificate",
               "type": "string",
               "description": "the certificate for the corresponding recipient"
-            }
+            },
+	    {
+	      "name": "domain_cert",
+              "type": "string",
+              "description": "domain certificate of recipient"
+	    }
           ]
         },
+	{
+	  "name": "remove_cert",
+          "type": "function",
+          "description": "remove a certificate",
+          "async": true,
+          "parameters": [
+            {
+              "name": "recipientID",
+              "type": "string",
+              "description": "recipient Email"
+            }
+          ]
+	},
         {
           "name": "get_smtp_server",
           "type": "function",
