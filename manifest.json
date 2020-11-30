@@ -26,7 +26,7 @@
     ]
   },
   "permissions": 
-    ["messagesRead", "compose", "accountsRead", "nativeMessaging", "activeTab"]
+    ["messagesRead","compose", "accountsRead", "nativeMessaging", "activeTab"]
   ,
   "compose_action": {
     "default_icon": "images/lock.png",

@@ -50,6 +50,71 @@
               "description": "identity we want the current smtp server for"
             }
           ]
+        },
+	{
+          "name": "addUserCertificate",
+          "type": "function",
+          "description": "Add certificate from base64 encoded der file",
+          "async": false,
+          "parameters": [
+            {
+              "name": "b64certificate",
+              "type": "string",
+              "description": "certificate to add in base64 format"
+            }
+          ]
+        },
+	{
+          "name": "addDomainCertificate",
+          "type": "function",
+          "description": "add certificate from base64 encoded file (domain cert)",
+          "async": false,
+          "parameters": [
+            {
+              "name": "b64certificate",
+              "type": "string",
+              "description": "certificate to add"
+            }
+          ]
+        },
+	{
+          "name": "removeCertDomain",
+          "type": "function",
+          "description": "remove certificate from recipient domain",
+          "async": false,
+          "parameters": [
+            {
+              "name": "certificate",
+              "type": "string",
+              "description": "certificate to remove"
+            }
+          ]
+        },
+	{
+          "name": "removeCertUser",
+          "type": "function",
+          "description": "remove certificate from recipient",
+          "async": false,
+          "parameters": [
+            {
+              "name": "certificate",
+              "type": "string",
+              "description": "certificate to remove"
+            }
+          ]
+        },
+	{
+          "name": "checkDomainKnown",
+          "type": "function",
+          "description": "check if domain already known",
+          "async": false,
+          "parameters": [
+            {
+              "name": "domain_name",
+              "type": "string",
+              "description": "domain name"
+            }
+          ]
         }
       ]
     }
