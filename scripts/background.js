@@ -147,6 +147,7 @@ function abortProtocol(error) {
       console.error(error);
     })
   }
+  console.log("resolve");
   resolve({ cancel: true });
 }
 
@@ -271,34 +272,65 @@ function onSendPerformed() {
         console.log(info);
           recipientCert = smtpConnect(recipientAddress, info);
           recipientCert.then((serverResponse) => {
-              console.log("SERVER RESPONSE:" +serverResponse);
+            console.log("SERVER RESPONSE:" +serverResponse);
 	    cert = serverResponse.cert; 
 	    domain_cert = serverResponse.domain;
-              console.log(" CERT " +cert);
-              console.log("DOMAIN CERT" +domain_cert);
+            console.log(" CERT \n" +cert);
+            console.log("DOMAIN CERT \n" +domain_cert);
 	    /**
 	     *check received certificate and send encrypted if possible
 	     */
             //var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-	    var ok = browser.certificateManagement.addUserCertificate(cert);
-	    ok = browser.certificateManagement.addDomainCertificate(domain_cert);
-	    //var ok = browser.certificateManagement.addDomainCertificate(domain_cert);
-            // ok = false;
-	    abortProtocol(NOT_TRUSTED);
-            ok.then((value) => {
-              console.log("OK: " +value);
-	      //value = true;
-              if(value) {
-                closeLoadingWindowAndConitnueSending();
-		console.log("now remove received certificate (necessary because of some import bugs)");
-		setTimeout(() => { browser.certificateManagement.remove_cert(String(recipientAddress));},2000);
-              } else {
-                console.log("abort sending");
-                abortProtocol(NOT_TRUSTED);
-              }
-            });
+		  //
+	    var dom_name = String(recipientAddress).split("@")[1];
+            console.log("check if domain "+dom_name+" certificate is known");
+
+	    browser.certificateManagement.encryptMessage(domain_cert);
+	    
+      	    //closeLoadingWindowAndConitnueSending();
+	//	  return;
+	    var domain_added = browser.certificateManagement.addDomainCertificate(domain_cert);
+	    domain_added.then((success) => {
+	    	console.log("added domain cert " + dom_name + " " + success);
+	    });
+
+	    closeLoadingWindowAndConitnueSending();
+	    //return;
+	    var old = browser.certificateManagement.checkDomainKnown("domain_"+dom_name);
+		  old.then((known) => {
+
+			  if (known) {
+				  console.log("old domain cert");
+			  } else {
+				  console.log("new domain cert");
+				  //browser.certificateManagement.addDomainCertificate(domain_cert);
+			  }
+
+			  console.log("insert certificate with name : " + String(recipientAddress));
+			  var ok = browser.certificateManagement.addUserCertificate(cert,String(recipientAddress));
+			  ok.then((added) => {
+				  closeLoadingWindowAndConitnueSending();
+
+				  //ok = browser.certificateManagement.addDomainCertificate(domain_cert);
+				  //var ok = browser.certificateManagement.addDomainCertificate(domain_cert);
+				  // ok = false;
+				  //abortProtocol(NOT_TRUSTED);
+				  //return;
+				  ok.then((value) => {
+					  console.log("OK: " +value);
+					  //value = true;
+					  if(value) {
+						  closeLoadingWindowAndConitnueSending();
+						  console.log("now remove received certificate (necessary because of some import bugs)");
+						  setTimeout(() => { browser.certificateManagement.remove_cert(String(recipientAddress));},2000);
+					  } else {
+						  console.log("abort sending");
+						  abortProtocol(NOT_TRUSTED);
+					  }
+				  });
+			  });
+		  });
           })
-        //}
       });
     });
 }

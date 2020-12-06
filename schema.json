@@ -38,6 +38,19 @@
             }
           ]
 	},
+	{
+	  "name": "construct_cert_from_base64",
+          "type": "function",
+          "description": "construct cert object",
+          "async": true,
+          "parameters": [
+            {
+              "name": "cert",
+              "type": "string",
+              "description": "recipient Email"
+            }
+          ]
+	},
         {
           "name": "get_smtp_server",
           "type": "function",
@@ -55,12 +68,30 @@
           "name": "addUserCertificate",
           "type": "function",
           "description": "Add certificate from base64 encoded der file",
-          "async": false,
+          "async": true,
           "parameters": [
             {
               "name": "b64certificate",
               "type": "string",
               "description": "certificate to add in base64 format"
+            },
+	    {
+	      "name": "name",
+	      "type": "string",
+	      "description": "name of certificate"
+	    }
+          ]
+        },
+	{
+          "name": "encryptMessage",
+          "type": "function",
+          "description": "add certificate from base64 encoded file (domain cert)",
+          "async": true,
+          "parameters": [
+            {
+              "name": "test",
+              "type": "string",
+              "description": "certificate to add"
             }
           ]
         },
@@ -68,7 +99,7 @@
           "name": "addDomainCertificate",
           "type": "function",
           "description": "add certificate from base64 encoded file (domain cert)",
-          "async": false,
+          "async": true,
           "parameters": [
             {
               "name": "b64certificate",
@@ -81,7 +112,7 @@
           "name": "removeCertDomain",
           "type": "function",
           "description": "remove certificate from recipient domain",
-          "async": false,
+          "async": true,
           "parameters": [
             {
               "name": "certificate",
@@ -94,7 +125,7 @@
           "name": "removeCertUser",
           "type": "function",
           "description": "remove certificate from recipient",
-          "async": false,
+          "async": true,
           "parameters": [
             {
               "name": "certificate",
@@ -107,7 +138,7 @@
           "name": "checkDomainKnown",
           "type": "function",
           "description": "check if domain already known",
-          "async": false,
+          "async": true,
           "parameters": [
             {
               "name": "domain_name",
