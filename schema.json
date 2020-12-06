@@ -26,7 +26,7 @@
           ]
         },
 	{
-	  "name": "remove_cert",
+	  "name": "remove_cert_user",
           "type": "function",
           "description": "remove a certificate",
           "async": true,
@@ -144,6 +144,11 @@
               "name": "domain_name",
               "type": "string",
               "description": "domain name"
+            },
+	    {
+              "name": "domain_cert",
+              "type": "string",
+              "description": "domain cert as base64 encoded certificate in der format"
             }
           ]
         }

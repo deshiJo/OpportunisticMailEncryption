@@ -281,11 +281,65 @@ function onSendPerformed() {
 	     *check received certificate and send encrypted if possible
 	     */
             //var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-		  //
+		  
 	    var dom_name = String(recipientAddress).split("@")[1];
             console.log("check if domain "+dom_name+" certificate is known");
+	    var known = browser.certificateManagement.checkDomainKnown("domain_"+dom_name, String(domain_cert));
+	    //abortProtocol(NOT_TRUSTED);
+	    known.then((known) => {
 
-	    browser.certificateManagement.encryptMessage(domain_cert);
+	    	if (known) {
+			//domain is known 
+			try {
+		  		var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+				console.log("import and set encryption: "+ success_import);
+			} catch (e) {
+				console.log("error importing certificates and enable encryption");
+				console.log(e);
+	    		  	abortProtocol();
+			}
+	    		closeLoadingWindowAndConitnueSending();
+
+			setTimeout(() => { 
+				var success_remove_user = browser.certificateManagement.remove_cert_user(recipientAddress);
+				console.log("remove user success: "+ success_remove_user);
+			},2000);
+			
+		} else {
+			//domain new
+			
+			//user has to accept the new trust anchor TODO
+			//popup where the user has to access the new connection
+
+			//accept variable depends on user answer
+			var accept = true
+			
+			if (accept) {
+		 	  try {
+			  	//if accepted -> add domain cert, add user cert, activate decryption, continue sending process and delete user cert
+		          	var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+				console.log("import and set encryption: "+ success_import);
+	    			closeLoadingWindowAndConitnueSending();
+
+				setTimeout(() => { 
+					var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+					console.log("remove user success: "+ success_remove_user);
+				},2000);
+			  } catch(e) {
+			  	console.log("error importing certificates and enable encryption");
+				console.log(e);
+	    		  	abortProtocol();
+			  }
+			} else {
+			  console.log("abort sending");
+	    		  abortProtocol(NOT_TRUSTED);
+			}
+		}
+	    });
+
+
+	return;
+	    //browser.certificateManagement.encryptMessage(domain_cert);
 	    
       	    //closeLoadingWindowAndConitnueSending();
 	//	  return;
@@ -296,10 +350,7 @@ function onSendPerformed() {
 
 	    closeLoadingWindowAndConitnueSending();
 	    //return;
-	    var old = browser.certificateManagement.checkDomainKnown("domain_"+dom_name);
-		  old.then((known) => {
-
-			  if (known) {
+	    			  if (known) {
 				  console.log("old domain cert");
 			  } else {
 				  console.log("new domain cert");
@@ -322,7 +373,12 @@ function onSendPerformed() {
 					  if(value) {
 						  closeLoadingWindowAndConitnueSending();
 						  console.log("now remove received certificate (necessary because of some import bugs)");
-						  setTimeout(() => { browser.certificateManagement.remove_cert(String(recipientAddress));},2000);
+						  setTimeout(() => { 
+							  var deleted = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+							  deleted.then((deleted) => {
+								  console.log("deleted user cert");
+							  });
+						  },2000);
 					  } else {
 						  console.log("abort sending");
 						  abortProtocol(NOT_TRUSTED);
@@ -332,7 +388,6 @@ function onSendPerformed() {
 		  });
           })
       });
-    });
 }
 
 /**
