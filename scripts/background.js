@@ -18,6 +18,7 @@ let composeTabId;
  * message ports for content scripts (i.e error.js)
  */
 let portFromCSError;
+let portFromTrustRequest;
 
 
 browser.composeAction.setBadgeText({
@@ -45,6 +46,20 @@ function connected(p) {
       });
       updateErrorMessageWindow();
   }
+  if(p.name=="port-from-trust") {
+	      portFromTrustRequest = p;
+	      portFromTrustRequest.onMessage.addListener(function(m) {
+		if(m.Abort) {
+			browser.windows.remove(trustWindowID);
+			trustWindowID = null;
+			trustWindowResolve({"trust": false});
+		} else {
+			browser.windows.remove(trustWindowID);
+			trustWindowID = null;
+			trustWindowResolve({"trust": true});
+		}
+	      });
+  }
   /**
    * add your listener here
    */
@@ -62,6 +77,7 @@ function updateErrorMessageWindow() {
   }
 
 }
+
 
 /* 
   message handler for loader.js
@@ -304,36 +320,54 @@ function onSendPerformed() {
 				var success_remove_user = browser.certificateManagement.remove_cert_user(recipientAddress);
 				console.log("remove user success: "+ success_remove_user);
 			},2000);
-			
+
 		} else {
 			//domain new
-			
+
 			//user has to accept the new trust anchor TODO
 			//popup where the user has to access the new connection
+			trustMessage = browser.windows.create({
+				allowScriptsToClose: true,
+				url: "../popup/trust_request.html",
+				type: "panel",
+				width: 300,
+				height: 190,
+			});
+			trustMessage.then((trustWindow) => {
+				promiseTrustWindow = onCreateTrustWindow(trustWindow);
 
-			//accept variable depends on user answer
-			var accept = true
-			
-			if (accept) {
-		 	  try {
-			  	//if accepted -> add domain cert, add user cert, activate decryption, continue sending process and delete user cert
-		          	var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-				console.log("import and set encryption: "+ success_import);
-	    			closeLoadingWindowAndConitnueSending();
 
-				setTimeout(() => { 
-					var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
-					console.log("remove user success: "+ success_remove_user);
-				},2000);
-			  } catch(e) {
-			  	console.log("error importing certificates and enable encryption");
-				console.log(e);
-	    		  	abortProtocol();
-			  }
-			} else {
-			  console.log("abort sending");
-	    		  abortProtocol(NOT_TRUSTED);
-			}
+				promiseTrustWindow.then((userAnswer) => {
+					//accept variable depends on user answer
+					
+					console.log("user answer "+ userAnswer.trust);
+					var accept = true
+					accept = userAnswer.trust;
+
+					if (accept) {
+						try {
+							//if accepted -> add domain cert, add user cert, activate decryption, continue sending process and delete user cert
+							var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+							console.log("import and set encryption: "+ success_import);
+							closeLoadingWindowAndConitnueSending();
+
+							setTimeout(() => { 
+								var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+								console.log("remove user success: "+ success_remove_user);
+							},2000);
+						} catch(e) {
+							console.log("error importing certificates and enable encryption");
+							console.log(e);
+							abortProtocol();
+						}
+					} else {
+						console.log("abort sending");
+
+						abortProtocol(NOT_TRUSTED);
+					}
+				});
+
+			});
 		}
 	    });
 
@@ -576,6 +610,13 @@ browser.composeAction.onClicked.addListener(() => {
   //gettingStoredSettings.then(forget, onError);
 });
 
+function onCreateTrustWindow(trustWindow) {
+	trustWindowID = trustWindow.id;
+	return new Promise(resolve => {
+      		// promiseMap.set(loadingWindowID, resolve);
+      		trustWindowResolve = resolve;
+    	});
+}
 
 //show "please wait" while request certificate
 function onCreated(windowInfo) {

@@ -150,8 +150,8 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
 			  return false;
 		  }
 		  console.log("user certificate added successfully");
-                  let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
-       		  recentWindow.onSecurityChoice("enc2");
+                  //let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
+       		  //recentWindow.onSecurityChoice("enc2");
 		  return true;
 	  },
 
@@ -313,6 +313,7 @@ var certificateManagement = class extends ExtensionCommon.ExtensionAPI {
 			//
 			//gMsgCompose.compFields.composeSecure.requireEncryptMessage
 			//
+	      	        let recentWindow = Services.wm.getMostRecentWindow("msgcompose");
 	      		recentWindow.onSecurityChoice("enc2");
 		} else {
 
