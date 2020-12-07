@@ -273,103 +273,87 @@ browser.compose.onBeforeSend.addListener(() => {
 //trigger cert req on message send 
 // window.addEventListener('compose-send-message', onSendPerformed, true);
 // window.addEventListener('compose-window-close', onSendPerformed, true);
-function onSendPerformed() {  
+function onSendPerformed() {
   //check if certificate already present
   var present = false; //TODO
-       
-    var recipientPromise = extractRecipientAddressAndIdentityId();
-    recipientPromise.then((details)=> {
-      var recipientAddress = details[0];
-      var identityId = details[1];
-      outgoing_server = browser.certificateManagement.get_smtp_server(identityId);
 
-      outgoing_server.then((info) => {
+  var recipientPromise = extractRecipientAddressAndIdentityId();
+  recipientPromise.then((details) => {
+    var recipientAddress = details[0];
+    var identityId = details[1];
+    outgoing_server = browser.certificateManagement.get_smtp_server(identityId);
 
-        console.log(info);
-          recipientCert = smtpConnect(recipientAddress, info);
-          recipientCert.then((serverResponse) => {
-            console.log("SERVER RESPONSE:" +serverResponse);
-	    cert = serverResponse.cert; 
-	    domain_cert = serverResponse.domain;
-            console.log(" CERT \n" +cert);
-            console.log("DOMAIN CERT \n" +domain_cert);
-	    /**
-	     *check received certificate and send encrypted if possible
-	     */
-            //var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-		  
-	    var dom_name = String(recipientAddress).split("@")[1];
-            console.log("check if domain "+dom_name+" certificate is known");
-	    var known = browser.certificateManagement.checkDomainKnown("domain_"+dom_name, String(domain_cert));
-	    //abortProtocol(NOT_TRUSTED);
-	    known.then((known) => {
+    outgoing_server.then((info) => {
 
-	    	if (known) {
-			//domain is known 
-			try {
-		  		var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-				console.log("import and set encryption: "+ success_import);
-			} catch (e) {
-				console.log("error importing certificates and enable encryption");
-				console.log(e);
-	    		  	abortProtocol();
-			}
-	    		closeLoadingWindowAndConitnueSending();
+      console.log(info);
+      recipientCert = smtpConnect(recipientAddress, info);
+      recipientCert.then((serverResponse) => {
+        console.log("SERVER RESPONSE:" + serverResponse);
+        cert = serverResponse.cert;
+        domain_cert = serverResponse.domain;
+        console.log(" CERT \n" + cert);
+        console.log("DOMAIN CERT \n" + domain_cert);
+        /**
+         *check received certificate and send encrypted if possible
+         */
+        //var ok = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
 
-			setTimeout(() => { 
-				var success_remove_user = browser.certificateManagement.remove_cert_user(recipientAddress);
-				console.log("remove user success: "+ success_remove_user);
-			},2000);
+        var dom_name = String(recipientAddress).split("@")[1];
+        console.log("check if domain " + dom_name + " certificate is known");
+        var known = browser.certificateManagement.checkDomainKnown("domain_" + dom_name, String(domain_cert));
+        var cert_imported = false;
+        //abortProtocol(NOT_TRUSTED);
+        known.then((known) => {
 
-		} else {
-			//domain new
+          if (!known) {
+            //domain new
 
-			//user has to accept the new trust anchor TODO
-			//popup where the user has to access the new connection
-			trustMessage = browser.windows.create({
-				allowScriptsToClose: true,
-				url: "../popup/trust_request.html",
-				type: "panel",
-				width: 300,
-				height: 190,
-			});
-			trustMessage.then((trustWindow) => {
-				promiseTrustWindow = onCreateTrustWindow(trustWindow);
+            //user has to accept the new trust anchor TODO
+            //popup where the user has to access the new connection
+            trustMessage = browser.windows.create({
+              allowScriptsToClose: true,
+              url: "../popup/trust_request.html",
+              type: "panel",
+              width: 300,
+              height: 190,
+            });
+            trustMessage.then((trustWindow) => {
+              promiseTrustWindow = onCreateTrustWindow(trustWindow);
+              promiseTrustWindow.then((userAnswer) => {
+                //accept variable depends on user answer
 
+                console.log("user answer " + userAnswer.trust);
+                var accept = true
+                accept = userAnswer.trust;
 
-				promiseTrustWindow.then((userAnswer) => {
-					//accept variable depends on user answer
-					
-					console.log("user answer "+ userAnswer.trust);
-					var accept = true
-					accept = userAnswer.trust;
+                if (!accept) {
+                  console.log("user does not trust connection: abort sending");
+                  abortProtocol(NOT_TRUSTED);
+                  return;
+                }
+              });
 
-					if (accept) {
-						try {
-							//if accepted -> add domain cert, add user cert, activate decryption, continue sending process and delete user cert
-							var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-							console.log("import and set encryption: "+ success_import);
-							closeLoadingWindowAndConitnueSending();
+            });
+          }
 
-							setTimeout(() => { 
-								var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
-								console.log("remove user success: "+ success_remove_user);
-							},2000);
-						} catch(e) {
-							console.log("error importing certificates and enable encryption");
-							console.log(e);
-							abortProtocol();
-						}
-					} else {
-						console.log("abort sending");
-
-						abortProtocol(NOT_TRUSTED);
-					}
-				});
-
-			});
-		}
-	    });
+          try {
+            var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+            console.log("import and set encryption: " + success_import);
+            cert_imported = success_import;
+          } catch (e) {
+            console.log("error importing certificates and enable encryption");
+            console.log(e);
+            abortProtocol();
+            return;
+          }
+          closeLoadingWindowAndConitnueSending();
+          if (cert_imported) {
+            setTimeout(() => {
+              var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+              console.log("remove user success: " + success_remove_user);
+            }, 2000);
+          }
+        });
 
 
 	return;
