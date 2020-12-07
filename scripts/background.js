@@ -330,32 +330,48 @@ function onSendPerformed() {
                   console.log("user does not trust connection: abort sending");
                   abortProtocol(NOT_TRUSTED);
                   return;
+                } else {
+                  try {
+                    var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+                    console.log("import and set encryption: " + success_import);
+                    cert_imported = success_import;
+                  } catch (e) {
+                    console.log("error importing certificates and enable encryption");
+                    console.log(e);
+                    abortProtocol();
+                    return;
+                  }
+                  closeLoadingWindowAndConitnueSending();
+                  if (cert_imported) {
+                    setTimeout(() => {
+                      var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+                      console.log("remove user success: " + success_remove_user);
+                    }, 2000);
+                  }
                 }
               });
 
             });
-          }
-
-          try {
-            var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
-            console.log("import and set encryption: " + success_import);
-            cert_imported = success_import;
-          } catch (e) {
-            console.log("error importing certificates and enable encryption");
-            console.log(e);
-            abortProtocol();
-            return;
-          }
-          closeLoadingWindowAndConitnueSending();
-          if (cert_imported) {
-            setTimeout(() => {
-              var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
-              console.log("remove user success: " + success_remove_user);
-            }, 2000);
+          } else {
+            try {
+              var success_import = browser.certificateManagement.import_cert(String(recipientAddress), cert, domain_cert);
+              console.log("import and set encryption: " + success_import);
+              cert_imported = success_import;
+            } catch (e) {
+              console.log("error importing certificates and enable encryption");
+              console.log(e);
+              abortProtocol();
+              return;
+            }
+            closeLoadingWindowAndConitnueSending();
+            if (cert_imported) {
+              setTimeout(() => {
+                var success_remove_user = browser.certificateManagement.remove_cert_user(String(recipientAddress));
+                console.log("remove user success: " + success_remove_user);
+              }, 2000);
+            }
           }
         });
-
-
 	return;
 	    //browser.certificateManagement.encryptMessage(domain_cert);
 	    
